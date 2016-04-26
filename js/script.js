@@ -22,6 +22,7 @@ var yAxis = d3.svg.axis()
 
 var line = d3.svg.line()
     .interpolate("basis")
+     .defined(function(d){return d.gpa != null && d.gpa != undefined && d.gpa !== 0})
     .x(function(d) { return x(d.date); })
     .y(function(d) { return y(d.gpa); });
 
@@ -31,13 +32,7 @@ var svg = d3.select(".chart").append("svg")
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-
-
-
 d3.tsv("js/data of gpa later.tsv", function(error, data) {
-
-     
-    .defined(function(d){return d.y != null && d.y != undefined})
 
   if (error) throw error;
 
