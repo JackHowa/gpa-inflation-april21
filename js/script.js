@@ -1,94 +1,113 @@
-var margin = {top: 20, right: 80, bottom: 30, left: 50},
-    width = 960 - margin.left - margin.right,
-    height = 500 - margin.top - margin.bottom;
+function log(text) {
+  if (console && console.log) console.log(text);
+  return text;
+}
 
-var parseDate = d3.time.format("%Y").parse;
 
-var x = d3.time.scale()
-    .range([0, width]);
 
-var y = d3.scale.linear()
-    .range([height, 0]);
+$(document).ready(function() {
+  var margin = {top: 30, right: 10, bottom: 50, left: 60},
+      chart = d3LineWithLegend()
+                .xAxis.label('Time (ms)')
+                .width(width(margin))
+                .height(height(margin))
+                .yAxis.label('Voltage (v)');
 
-var color = d3.scale.category10();
 
-var xAxis = d3.svg.axis()
-    .scale(x)
-    .orient("bottom");
+  var svg = d3.select('#test1 svg')
+      .datum(generateData())
 
-var yAxis = d3.svg.axis()
-    .scale(y)
-    .orient("left");
+  svg.transition().duration(500)
+      .attr('width', width(margin))
+      .attr('height', height(margin))
+      .call(chart);chart.dispatch.on('showTooltip', function(e) {
+  var offset = $('#test1').offset(), // { left: 0, top: 0 }
+        left = e.pos[0] + offset.left,
+        top = e.pos[1] + offset.top,
+        formatter = d3.format(".04f");
 
-var line = d3.svg.line()
-    .interpolate("basis")
-     .defined(function(d){return d.gpa != null && d.gpa != undefined && d.gpa !== 0})
-    .x(function(d) { return x(d.date); })
-    .y(function(d) { return y(d.gpa); });
+    var content = '<h3>' + e.series.label + '</h3>' +
+                  '<p>' +
+                  '<span class="value">[' + e.point[0] + ', ' + formatter(e.point[1]) + ']</span>' +
+                  '</p>';
 
-    //this is the change I made for the defined 
-
-var svg = d3.select(".chart").append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-  .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-d3.tsv("js/data of gpa later.tsv", function(error, data) {
-
-  if (error) throw error;
-
-  color.domain(d3.keys(data[0]).filter(function(key) { return key !== "date"; }));
-
-  data.forEach(function(d) {
-    d.date = parseDate(d.date);
+    nvtooltip.show([left, top], content);
   });
 
-  var schools = color.domain().map(function(name) {
-    return {
-      name: name,
-      values: data.map(function(d) {
-        return {date: d.date, gpa: +d[name]};
-      })
-    };
+  chart.dispatch.on('hideTooltip', function(e) {
+    nvtooltip.cleanup();
   });
 
-  x.domain(d3.extent(data, function(d) { return d.date; }));
 
-  y.domain([
-    d3.min(schools, function(c) { return d3.min(c.values, function(v) { return v.gpa; }); }),
-    d3.max(schools, function(c) { return d3.max(c.values, function(v) { return v.gpa; }); })
-  ]);
 
-   svg.append("g")
-      .attr("class", "x axis")
-      .attr("transform", "translate(0," + height + ")")
-      .call(xAxis);
 
-  svg.append("g")
-      .attr("class", "y axis")
-      .call(yAxis)
-    .append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("y", 6)
-      .attr("dy", ".71em")
-      .style("text-anchor", "end")
-      .text("gpa (ºF)");
+  $(window).resize(function() {
+    var margin = chart.margin();
 
-  var school = svg.selectAll(".school")
-      .data(schools)
-    .enter().append("g")
-      .attr("class", "school");
+    chart
+      .width(width(margin))
+      .height(height(margin));
 
-  school.append("path")
-      .attr("class", "line")
-      .attr("d", function(d) { return line(d.values); })
-      .style("stroke", function(d) { return color(d.name); });
+    d3.select('#test1 svg')
+      .attr('width', width(margin))
+      .attr('height', height(margin))
+      .call(chart);
 
-  school.append("text")
-      .datum(function(d) { return {name: d.name, value: d.values[d.values.length - 1]}; })
-      .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.gpa) + ")"; })
-      .attr("x", 3)
-      .attr("dy", ".35em")
-      .text(function(d) { return d.name; });
+    });
+
+
+
+
+  function width(margin) {
+    var w = $(window).width() - 20;
+
+    return ( (w - margin.left - margin.right - 20) < 0 ) ? margin.left + margin.right + 2 : w;
+  }
+
+  function height(margin) {
+    var h = $(window).height() - 20;
+
+    return ( h - margin.top - margin.bottom - 20 < 0 ) ? 
+              margin.top + margin.bottom + 2 : h;
+  }
+
+
+  //data
+  function generateData() {
+    var sin = [],
+        sin2 = [],
+        cos = [],
+        cos2 = [],
+        r1 = Math.random(),
+        r2 = Math.random(),
+        r3 = Math.random(),
+        r4 = Math.random();
+
+    for (var i = 0; i < 100; i++) {
+      sin.push([ i, r1 * Math.sin( r2 +  i / (10 * (r4 + .5) ))]);
+      cos.push([ i, r2 * Math.cos( r3 + i / (10 * (r3 + .5) ))]);
+      sin2.push([ i, r3 * Math.sin( r1 + i / (10 * (r2 + .5) ))]);
+      cos2.push([ i, r4 * Math.cos( r4 + i / (10 * (r1 + .5) ))]);
+    }
+
+    return [
+      {
+        data: sin,
+        label: "Sine Wave"
+      },
+      {
+        data: cos,
+        label: "Cosine Wave"
+      },
+      {
+        data: sin2,
+        label: "Sine2 Wave"
+      },
+      {
+        data: cos2,
+        label: "Cosine2 Wave"
+      }
+    ];
+  }
+
 });
